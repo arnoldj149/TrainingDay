@@ -10,7 +10,8 @@ public class NetworkManager : MonoBehaviour {
 	public const string DEF_PLAYER_NAME = "Anonymous";
 	public const string DEF_GAME_NAME = "";
 
-	enum GameType { Deathmatch };
+	public enum GameType { Deathmatch };
+	public enum ClassType { Attacker = 0, Attractor = 1, Healer = 2};
 	
 	GameType gameType = GameType.Deathmatch;
 	private string playerName = DEF_PLAYER_NAME;
@@ -19,6 +20,13 @@ public class NetworkManager : MonoBehaviour {
 		get { return playerName; }
 		set { playerName = value; }
 	}
+	private ClassType typeSelection = ClassType.Attacker;
+	public ClassType TypeSelection
+	{
+		get { return typeSelection; }
+		set { typeSelection = value; }
+	}
+	
 	private string gameName = DEF_GAME_NAME;
 	public string GameName
 	{
@@ -47,6 +55,8 @@ public class NetworkManager : MonoBehaviour {
 			gameName = PlayerPrefs.GetString("gameName");
 		if (PlayerPrefs.HasKey("maxPlayers"))
 			maxPlayers = PlayerPrefs.GetInt("maxPlayers");
+		if (PlayerPrefs.HasKey("typeSelection"))
+			typeSelection = (ClassType) PlayerPrefs.GetInt("typeSelection");
 		
 		spawnManager = GetComponent<SpawnManager>();
 	}
@@ -125,5 +135,4 @@ public class NetworkManager : MonoBehaviour {
 		if (msEvent == MasterServerEvent.HostListReceived)
 			hostList = MasterServer.PollHostList();
 	}
-	
 }

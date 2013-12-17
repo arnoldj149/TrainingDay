@@ -14,6 +14,7 @@ public class GUIManager : MonoBehaviour {
 	}
 	private GUIState gotoState;
 	private NetworkManager nwm; 
+	int selectedHost = 0;
 	
 	public Rect mainMenuRect;
 	public int mainMenuWidth = 320;
@@ -48,6 +49,9 @@ public class GUIManager : MonoBehaviour {
 	private int leftPad;
 	private int topPad;
 	private string displayInfo;
+	
+	public Texture2D crosshair;
+	private Rect crosshairPos = new Rect(Screen.width / 2 - 10, Screen.height / 2 - 10, 20, 20);
 	
 	// Use this for initialization
 	void Start () {
@@ -106,14 +110,18 @@ public class GUIManager : MonoBehaviour {
 			if (Input.GetKeyDown(KeyCode.Escape))
 			{
 				nwm.PlayerName = PlayerPrefs.GetString("playerName");
-				currentState = GUIState.MainMenu;
+				if (Network.isClient || Network.isServer)
+					gotoState = GUIState.PauseMenu;
+				else
+					gotoState = GUIState.MainMenu;
+				currentState = gotoState;
 			}
 			
 			break;
 		case GUIState.DisplayInfo:
 			if (Input.GetKeyDown(KeyCode.Return))
 			{
-				currentState = GUIState.MainMenu;
+				currentState = gotoState;
 			}
 			
 			break;
@@ -121,6 +129,11 @@ public class GUIManager : MonoBehaviour {
 			
 			break;
 		}
+		
+		if (currentState == GUIState.InGame)
+			Screen.lockCursor = true;
+		else
+			Screen.lockCursor = false;
 	}
 	
 	void OnGUI()
@@ -169,6 +182,17 @@ public class GUIManager : MonoBehaviour {
 			
 			break;
 		case GUIState.InGame:
+			GUI.DrawTexture(crosshairPos, crosshair);
+			SpawnManager spawner = GetComponent<SpawnManager>();
+			
+			if (!spawner.SpawnEnemies && GameObject.FindGameObjectsWithTag("Enemy").Length == 0)
+			{
+				GUILayout.TextField("Press Enter To Begin");
+				if (Input.GetKeyDown(KeyCode.Return))
+				{
+					spawner.SpawnEnemies = true;
+				}
+			}
 			
 			break;
 		case GUIState.PauseMenu:
@@ -219,6 +243,7 @@ public class GUIManager : MonoBehaviour {
 		if (GUILayout.Button("Join Game", GUILayout.Height(mainButtonHeight)))
 		{
 			currentState = GUIState.JoinGame;
+			nwm.RefreshHostList();
 		}
 	}
 	
@@ -253,7 +278,6 @@ public class GUIManager : MonoBehaviour {
 	{
 		HostData[] hostList = nwm.HostList;
 		string[] displayList;
-		int selectedHost = 0;
 		
 		if (GUILayout.Button("Refresh Hosts", GUILayout.Height(joinButtonHeight)))
 		{
@@ -270,6 +294,9 @@ public class GUIManager : MonoBehaviour {
             {
 				displayList[i] = hostList[i].gameName + " (" + hostList[i].connectedPlayers + "/" + hostList[i].playerLimit + ")";
             }
+			
+			if (selectedHost >= displayList.Length)
+				selectedHost = 0;
 			
 			selectedHost = GUILayout.SelectionGrid(selectedHost, displayList, 1);	
         }
@@ -299,6 +326,11 @@ public class GUIManager : MonoBehaviour {
 			currentState = GUIState.InGame;
 		}
 		
+		if (GUILayout.Button("Edit Profile", GUILayout.Height(mainButtonHeight)))
+		{
+			currentState = GUIState.EditProfile;
+		}
+		
 		if (GUILayout.Button("Disconnect", GUILayout.Height(pauseButtonHeight)))
 		{
 			currentState = GUIState.MainMenu;
@@ -308,8 +340,12 @@ public class GUIManager : MonoBehaviour {
 	
 	void EditProfileWindow(int windowID)
 	{
+		string[] types = {"Attacker", "Attractor", "Healer"};
+		
 		GUILayout.Label("Name: ");
 		nwm.PlayerName = GUILayout.TextField(nwm.PlayerName, NetworkManager.MAX_NAME_LENGTH);
+
+		nwm.TypeSelection = (NetworkManager.ClassType) GUILayout.SelectionGrid(nwm.TypeSelection.GetHashCode(), types, 3);
 		
 		GUILayout.FlexibleSpace();
 		
@@ -319,10 +355,15 @@ public class GUIManager : MonoBehaviour {
 			if (nwm.PlayerName != "")
 			{
 				PlayerPrefs.SetString("playerName", nwm.PlayerName);
+				PlayerPrefs.SetInt("typeSelection", nwm.TypeSelection.GetHashCode());
 				PlayerPrefs.Save();
 				
 				displayInfo = "Profile Saved.";
-				gotoState = GUIState.EditProfile;
+				if (Network.isClient || Network.isServer)
+					gotoState = GUIState.PauseMenu;
+				else
+					gotoState = GUIState.MainMenu;
+				
 				currentState = GUIState.DisplayInfo;
 			}
 			else
@@ -333,10 +374,14 @@ public class GUIManager : MonoBehaviour {
 			}
 		}
 		
-		if (GUILayout.Button("Main Menu", GUILayout.Height(joinButtonHeight)))
+		if (GUILayout.Button("Cancel", GUILayout.Height(joinButtonHeight)))
 		{
 			nwm.PlayerName = PlayerPrefs.GetString("playerName");
-			currentState = GUIState.MainMenu;
+			if (Network.isClient || Network.isServer)
+					gotoState = GUIState.PauseMenu;
+				else
+					gotoState = GUIState.MainMenu;
+			currentState = gotoState;
 		}
 		GUILayout.EndHorizontal();
 	}
@@ -354,11 +399,13 @@ public class GUIManager : MonoBehaviour {
 	private void OnServerInitialized()
 	{
 		currentState = GUIState.InGame;
+		Screen.lockCursor = true;
 	}
 	
 	private void OnConnectedToServer()
 	{
 		currentState = GUIState.InGame;
+		Screen.lockCursor = true;
 	}
 	
 	private void OnDisconnectedFromServer(NetworkDisconnection info)

@@ -2,7 +2,9 @@ fileFormatVersion: 2
 guid: 8d1b52db15f48ad4289ace9c43667cde
 MonoImporter:
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - playerPrefab: {fileID: 100048, guid: 92e6041f7a7f04b48bfead49071dbd37, type: 2}
+  - enemyPrefab: {fileID: 100000, guid: 23b5d982b7b656b44b4cc0eaba963c22, type: 2}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 
